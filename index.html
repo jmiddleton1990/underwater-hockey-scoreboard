@@ -133,7 +133,7 @@
           if (rows && rows.length >= 7) {
             const newMatch = parseTimeToSeconds(rows[0][0]);
             const newHalftime = parseTimeToSeconds(rows[1][0]);
-            const statusValue = (rows[8][0] || '').toLowerCase();
+            const statusValue = (rows[7]?.[0] || '').toLowerCase();
 
             if (statusValue === "pause") {
               paused = true;

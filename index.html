@@ -27,7 +27,7 @@
     }
 
     #time {
-      font-size: 10vw;
+      font-size: 12vw;
       margin: 1vh 0 2vh;
     }
 
@@ -152,7 +152,7 @@
       }
 
       function startClock() {
-        if (countdownInterval) return; // prevent multiple intervals
+        if (countdownInterval) return;
         countdownInterval = setInterval(() => {
           if (paused || phase === "end") return;
 
@@ -206,7 +206,7 @@
       });
 
       fetchData();
-      setInterval(fetchData, 5000);
+      setInterval(fetchData, 1000); // score update frequency set to every second
     });
   </script>
 </body>

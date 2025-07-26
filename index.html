@@ -71,7 +71,7 @@
   </div>
 
   <script>
-    const SHEET_ID = "1b6gofMejj1tXHA1o-fYcCBuV6RhMRiPbT8jQY8S2Y";
+    const SHEET_ID = "1b6gofMejj1tXHA1o-yFvCBuV6RhMRiPbTl8iJQY8SzY";
     const API_KEY = "AIzaSyCaxh4c4PwWwCM3zVm35FoNlaY5NbXWH7c";
     const RANGE = "Settings!B1:B7";
     const API_URL = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`;
@@ -88,6 +88,8 @@
           document.getElementById("score1").textContent = rows[3][0] || '0';
           document.getElementById("team2").textContent = rows[4][0] || '';
           document.getElementById("score2").textContent = rows[5][0] || '0';
+        } else {
+          console.warn("Not enough data returned from the sheet");
         }
       } catch (err) {
         console.error("Error fetching sheet data:", err);

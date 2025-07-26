@@ -16,43 +16,47 @@
       justify-content: flex-start;
       align-items: center;
       min-height: 100vh;
-      transition: background-color 0.5s, color 0.5s;
+      transition: background-color 0.5s;
     }
+
     #logo {
       width: 400px;
       max-width: 80%;
       margin-top: 30px;
     }
+
     #time {
       font-size: 6vw;
       margin: 2vh 0;
     }
-    .teams {
+
+    .teams, .scores {
       display: flex;
       justify-content: space-around;
       align-items: center;
       width: 90%;
       max-width: 900px;
+    }
+
+    .teams {
       font-size: 2.5vw;
       font-weight: bold;
     }
+
     .scores {
-      display: flex;
-      justify-content: space-around;
-      width: 90%;
-      max-width: 900px;
       font-size: 8vw;
       font-weight: bold;
       margin-top: 1vh;
     }
+
     .divider {
       height: 8vw;
       width: 2px;
       background: rgba(255, 255, 255, 0.4);
     }
+
     .halftime {
-      background-color: #8B0000;
-      color: #fff;
+      background-color: #7c0a02 !important;
     }
   </style>
 </head>
@@ -71,87 +75,89 @@
   </div>
 
   <script>
-    const SHEET_ID = "1b6gofMejj1tXHA1o-fYcCBuV6RhMRiPbT8jQY8S2Y";
+    const SHEET_ID = "1b6gofMejj1tXHA1o-yFvCBuV6RhMRiPbTl8iJQY8SzY";
     const API_KEY = "AIzaSyCaxh4c4PwWwCM3zVm35FoNlaY5NbXWH7c";
-    const RANGE = "Settings!B1:B8";
+    const RANGE = "Settings!B1:B7";
     const API_URL = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`;
 
-    let halftimeLength = 60;
-    let matchLength = 1200;
-    let halftimeStart = 600;
-    let halftime = false;
-    let secondHalfStarted = false;
+    let matchLength = 0;
+    let halftimeLength = 0;
+    let halftimeStart = 0;
     let timeRemaining = 0;
-    let halftimeElapsed = 0;
+    let isHalftime = false;
+    let isSecondHalf = false;
+    let intervalStarted = false;
 
-    async function fetchSheetData() {
+    function parseTimeToSeconds(timeStr) {
+      const parts = timeStr.split(':');
+      return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+    }
+
+    function formatTime(seconds) {
+      const mins = String(Math.floor(seconds / 60)).padStart(2, '0');
+      const secs = String(seconds % 60).padStart(2, '0');
+      return `${mins}:${secs}`;
+    }
+
+    async function updateScoreboard() {
       try {
         const res = await fetch(API_URL);
         const data = await res.json();
         const rows = data.values;
 
-        if (rows && rows.length >= 8) {
+        if (rows && rows.length >= 7) {
           matchLength = parseTimeToSeconds(rows[0][0]);
           halftimeLength = parseTimeToSeconds(rows[1][0]);
           halftimeStart = Math.floor(matchLength / 2);
-          if (!halftime && !secondHalfStarted) {
-            timeRemaining = matchLength;
-          }
+          timeRemaining = matchLength;
 
           document.getElementById("team1").textContent = rows[3][0] || 'Team A';
           document.getElementById("score1").textContent = rows[4][0] || '0';
           document.getElementById("team2").textContent = rows[5][0] || 'Team B';
           document.getElementById("score2").textContent = rows[6][0] || '0';
+
+          if (!intervalStarted) {
+            intervalStarted = true;
+            setInterval(updateTimerDisplay, 1000);
+          }
         }
       } catch (err) {
         console.error("Error fetching sheet data:", err);
       }
     }
 
-    function parseTimeToSeconds(timeStr) {
-      const [min, sec] = timeStr.split(':').map(Number);
-      return (min * 60 + (sec || 0)) || 0;
-    }
-
-    function formatSecondsToMMSS(seconds) {
-      const min = String(Math.floor(seconds / 60)).padStart(2, '0');
-      const sec = String(seconds % 60).padStart(2, '0');
-      return `${min}:${sec}`;
-    }
-
     function updateTimerDisplay() {
-      const timeEl = document.getElementById("time");
+      const timeElem = document.getElementById("time");
 
-      if (!halftime && timeRemaining > halftimeStart) {
-        timeEl.textContent = formatSecondsToMMSS(timeRemaining);
+      if (!isHalftime && !isSecondHalf && timeRemaining > halftimeStart) {
+        // First half countdown
         timeRemaining--;
-      } else if (!halftime) {
-        halftime = true;
-        halftimeElapsed = 0;
+        timeElem.textContent = formatTime(timeRemaining);
+      } else if (!isHalftime && !isSecondHalf) {
+        // Enter halftime
+        isHalftime = true;
+        timeRemaining = 0;
         document.body.classList.add("halftime");
-        timeEl.textContent = "Half Time";
-      } else if (halftimeElapsed < halftimeLength) {
-        halftimeElapsed++;
-        timeEl.textContent = formatSecondsToMMSS(halftimeElapsed);
-      } else if (!secondHalfStarted) {
-        secondHalfStarted = true;
-        document.body.classList.remove("halftime");
+        timeElem.textContent = formatTime(timeRemaining);
+      } else if (isHalftime && timeRemaining < halftimeLength) {
+        // Halftime clock counting up
+        timeRemaining++;
+        timeElem.textContent = formatTime(timeRemaining);
+      } else if (isHalftime) {
+        // End of halftime
+        isHalftime = false;
+        isSecondHalf = true;
         timeRemaining = halftimeStart;
-      } else if (timeRemaining > 0) {
-        timeEl.textContent = formatSecondsToMMSS(timeRemaining);
+        document.body.classList.remove("halftime");
+      } else if (isSecondHalf && timeRemaining > 0) {
+        // Second half countdown
         timeRemaining--;
-      } else {
-        timeEl.textContent = "Full Time";
+        timeElem.textContent = formatTime(timeRemaining);
       }
     }
 
-    async function start() {
-      await fetchSheetData();
-      setInterval(fetchSheetData, 5000);
-      setInterval(updateTimerDisplay, 1000);
-    }
-
-    start();
+    updateScoreboard();
+    setInterval(updateScoreboard, 5000); // Refresh live scores every 5 sec
   </script>
 </body>
 </html>

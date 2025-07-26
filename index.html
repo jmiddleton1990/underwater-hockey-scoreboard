@@ -74,19 +74,26 @@
     <div id="score2">0</div>
   </div>
 
+  <!-- Buzzer sound (you can replace with your own mp3 if desired) -->
+  <audio id="buzzer" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" preload="auto"></audio>
+
   <script>
     const SHEET_ID = "1b6gofMejj1tXHA1o-yFvCBuV6RhMRiPbTl8iJQY8SzY";
     const API_KEY = "AIzaSyCaxh4c4PwWwCM3zVm35FoNlaY5NbXWH7c";
     const RANGE = "Settings!B1:B7";
     const API_URL = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`;
 
+    const timeElem = document.getElementById("time");
+    const buzzer = document.getElementById("buzzer");
+
     let matchLength = 0;
     let halftimeLength = 0;
     let halftimeStart = 0;
-    let timeRemaining = 0;
     let isHalftime = false;
     let isSecondHalf = false;
-    let intervalStarted = false;
+    let timeRemaining = 0;
+    let countdownInterval = null;
+    let firstLoad = true;
 
     function parseTimeToSeconds(timeStr) {
       const parts = timeStr.split(':');
@@ -99,60 +106,69 @@
       return `${mins}:${secs}`;
     }
 
-    async function updateScoreboard() {
+    async function fetchData() {
       try {
         const res = await fetch(API_URL);
         const data = await res.json();
         const rows = data.values;
 
         if (rows && rows.length >= 7) {
-          matchLength = parseTimeToSeconds(rows[0][0]);
-          halftimeLength = parseTimeToSeconds(rows[1][0]);
-          halftimeStart = Math.floor(matchLength / 2);
-          timeRemaining = matchLength;
+          const newMatch = parseTimeToSeconds(rows[0][0]);
+          const newHalftime = parseTimeToSeconds(rows[1][0]);
+
+          if (firstLoad) {
+            matchLength = newMatch;
+            halftimeLength = newHalftime;
+            halftimeStart = Math.floor(matchLength / 2);
+            timeRemaining = matchLength;
+            startClock();
+            firstLoad = false;
+          }
 
           document.getElementById("team1").textContent = rows[3][0] || 'Team A';
           document.getElementById("score1").textContent = rows[4][0] || '0';
           document.getElementById("team2").textContent = rows[5][0] || 'Team B';
           document.getElementById("score2").textContent = rows[6][0] || '0';
-
-          if (!intervalStarted) {
-            intervalStarted = true;
-            setInterval(updateTimerDisplay, 1000);
-          }
         }
       } catch (err) {
         console.error("Error fetching sheet data:", err);
       }
     }
 
-    function updateTimerDisplay() {
-      const timeElem = document.getElementById("time");
-
-      if (!isHalftime && !isSecondHalf && timeRemaining > halftimeStart) {
-        timeRemaining--;
-        timeElem.textContent = formatTime(timeRemaining);
-      } else if (!isHalftime && !isSecondHalf) {
-        isHalftime = true;
-        timeRemaining = 0;
-        document.body.classList.add("halftime");
-        timeElem.textContent = formatTime(timeRemaining);
-      } else if (isHalftime && timeRemaining < halftimeLength) {
-        timeRemaining++;
-        timeElem.textContent = formatTime(timeRemaining);
-      } else if (isHalftime) {
-        isHalftime = false;
-        isSecondHalf = true;
-        timeRemaining = halftimeStart;
-        document.body.classList.remove("halftime");
-      } else if (isSecondHalf && timeRemaining > 0) {
-        timeRemaining--;
-        timeElem.textContent = formatTime(timeRemaining);
-      }
+    function startClock() {
+      countdownInterval = setInterval(() => {
+        if (!isHalftime && !isSecondHalf && timeRemaining > halftimeStart) {
+          timeRemaining--;
+          timeElem.textContent = formatTime(timeRemaining);
+        } else if (!isHalftime && !isSecondHalf) {
+          // Start halftime
+          isHalftime = true;
+          timeRemaining = 0;
+          document.body.classList.add("halftime");
+          timeElem.textContent = formatTime(timeRemaining);
+          buzzer.play();
+        } else if (isHalftime && timeRemaining < halftimeLength) {
+          timeRemaining++;
+          timeElem.textContent = formatTime(timeRemaining);
+        } else if (isHalftime) {
+          // End halftime, start second half
+          isHalftime = false;
+          isSecondHalf = true;
+          timeRemaining = halftimeStart;
+          document.body.classList.remove("halftime");
+          buzzer.play();
+        } else if (isSecondHalf && timeRemaining > 0) {
+          timeRemaining--;
+          timeElem.textContent = formatTime(timeRemaining);
+          if (timeRemaining === 0) {
+            buzzer.play();
+          }
+        }
+      }, 1000);
     }
 
-    updateScoreboard();
-    setInterval(updateScoreboard, 5000);
+    fetchData();
+    setInterval(fetchData, 5000); // Only updates names/scores now
   </script>
 </body>
 </html>

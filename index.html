@@ -91,8 +91,10 @@
     document.addEventListener("DOMContentLoaded", function () {
       const SHEET_ID = "1b6gofMejj1tXHA1o-yFvCBuV6RhMRiPbTl8iJQY8SzY";
       const API_KEY = "AIzaSyCaxh4c4PwWwCM3zVm35FoNlaY5NbXWH7c";
-      const RANGE = "Settings!B1:B10";
+      const RANGE = "Settings!B2:B11";
+      const WRITE_RANGE = "Settings!B9";
       const API_URL = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`;
+      const WRITE_URL = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${WRITE_RANGE}?valueInputOption=RAW&key=${API_KEY}`;
 
       const timeElem = document.getElementById("time");
       const buzzer = document.getElementById("buzzer");
@@ -127,10 +129,10 @@
           const data = await res.json();
           const rows = data.values;
 
-          if (rows && rows.length >= 10) {
+          if (rows && rows.length >= 9) {
             const newMatch = parseTimeToSeconds(rows[0][0]);
             const newHalftime = parseTimeToSeconds(rows[1][0]);
-            const statusValue = (rows[9][0] || '').toLowerCase();
+            const statusValue = (rows[8][0] || '').toLowerCase();
 
             if (statusValue === "pause") {
               paused = true;
@@ -163,6 +165,19 @@
         }
       }
 
+      async function updateTimerInSheet(time) {
+        const body = JSON.stringify({ values: [[time]] });
+        try {
+          await fetch(WRITE_URL, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body
+          });
+        } catch (err) {
+          console.error("Error updating timer:", err);
+        }
+      }
+
       function startClock() {
         if (countdownInterval) return;
         countdownInterval = setInterval(() => {
@@ -171,6 +186,7 @@
           if (phase === "first") {
             timeRemaining--;
             timeElem.textContent = formatTime(timeRemaining);
+            updateTimerInSheet(timeElem.textContent);
             if (useHalftime && timeRemaining === halftimeStart) {
               buzzer.play();
               phase = "halftime-pause";
@@ -181,6 +197,7 @@
           } else if (phase === "halftime") {
             halftimeTimer++;
             timeElem.textContent = formatTime(halftimeTimer);
+            updateTimerInSheet(timeElem.textContent);
             if (halftimeTimer >= halftimeLength) {
               buzzer.play();
               phase = "second";
@@ -190,10 +207,12 @@
           } else if (phase === "second") {
             timeRemaining--;
             timeElem.textContent = formatTime(timeRemaining);
+            updateTimerInSheet(timeElem.textContent);
             if (timeRemaining === 0) {
               buzzer.play();
               phase = "end";
               timeElem.textContent = "00:00";
+              updateTimerInSheet("00:00");
             }
           }
         }, 1000);

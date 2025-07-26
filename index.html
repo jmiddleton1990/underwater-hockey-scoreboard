@@ -26,8 +26,8 @@
     }
 
     #time {
-      font-size: 6vw;
-      margin: 2vh 0;
+      font-size: 10vw;
+      margin: 1vh 0 2vh;
     }
 
     .teams, .scores {
@@ -41,16 +41,16 @@
     .teams {
       font-size: 2.5vw;
       font-weight: bold;
+      margin-bottom: 0.5vh;
     }
 
     .scores {
-      font-size: 8vw;
+      font-size: 7vw;
       font-weight: bold;
-      margin-top: 1vh;
     }
 
     .divider {
-      height: 8vw;
+      height: 10vw;
       width: 2px;
       background: rgba(255, 255, 255, 0.4);
     }
@@ -130,34 +130,29 @@
       const timeElem = document.getElementById("time");
 
       if (!isHalftime && !isSecondHalf && timeRemaining > halftimeStart) {
-        // First half countdown
         timeRemaining--;
         timeElem.textContent = formatTime(timeRemaining);
       } else if (!isHalftime && !isSecondHalf) {
-        // Enter halftime
         isHalftime = true;
         timeRemaining = 0;
         document.body.classList.add("halftime");
         timeElem.textContent = formatTime(timeRemaining);
       } else if (isHalftime && timeRemaining < halftimeLength) {
-        // Halftime clock counting up
         timeRemaining++;
         timeElem.textContent = formatTime(timeRemaining);
       } else if (isHalftime) {
-        // End of halftime
         isHalftime = false;
         isSecondHalf = true;
         timeRemaining = halftimeStart;
         document.body.classList.remove("halftime");
       } else if (isSecondHalf && timeRemaining > 0) {
-        // Second half countdown
         timeRemaining--;
         timeElem.textContent = formatTime(timeRemaining);
       }
     }
 
     updateScoreboard();
-    setInterval(updateScoreboard, 5000); // Refresh live scores every 5 sec
+    setInterval(updateScoreboard, 5000);
   </script>
 </body>
 </html>

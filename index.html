@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>UWH Scoreboard</title>
+  <title>Underwater Hockey Scoreboard</title>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
       margin: 0;
       background: #001F3F;
-      color: #fff;
+      color: white;
       font-family: sans-serif;
       text-align: center;
       display: flex;
@@ -16,25 +16,59 @@
       justify-content: center;
       height: 100vh;
     }
-    #match {
+
+    #matchLength {
       font-size: 3vw;
       margin-bottom: 2vh;
     }
+
     #score {
       font-size: 8vw;
       font-weight: bold;
     }
+
     #timer {
-      margin-top: 2vh;
       font-size: 4vw;
-      opacity: 0.85;
+      margin-top: 2vh;
+      opacity: 0.8;
     }
   </style>
 </head>
 <body>
-  <div id="match">Loading match...</div>
+  <div id="matchLength">Loading match length...</div>
   <div id="score">Loading score...</div>
   <div id="timer"></div>
-  <script src="script.js"></script>
+
+  <script>
+    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTagkwva78c81RiOqezfmbosZMW8SJ2mP3rK63KVxlinyVIcF6L8N0sWsLBGA0WMdYVjWU8mk-uWiuY/pub?gid=2001550285&single=true&output=csv";
+
+    async function fetchData() {
+      try {
+        const response = await fetch(CSV_URL + "&_=" + Date.now()); // prevent cache
+        const text = await response.text();
+
+        const lines = text.trim().split("\n").map(row =>
+          row.split(",").map(cell => cell.replace(/^"|"$/g, ""))
+        );
+
+        const matchLength = lines[0][1]; // B1
+        const team1 = lines[2][1];       // B3
+        const score1 = lines[3][1];      // B4
+        const team2 = lines[4][1];       // B5
+        const score2 = lines[5][1];      // B6
+        const timer = lines[6]?.[1] || ""; // B7 (optional)
+
+        document.getElementById("matchLength").textContent = matchLength;
+        document.getElementById("score").textContent = `${team1} ${score1} – ${score2} ${team2}`;
+        document.getElementById("timer").textContent = timer;
+
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    }
+
+    setInterval(fetchData, 1000);
+    fetchData();
+  </script>
 </body>
 </html>

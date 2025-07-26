@@ -23,6 +23,7 @@
       width: 400px;
       max-width: 80%;
       margin-top: 30px;
+      cursor: pointer;
     }
 
     #time {
@@ -66,22 +67,10 @@
     .halftime {
       background-color: #7c0a02 !important;
     }
-
-    #startBtn {
-      font-size: 1.5rem;
-      padding: 0.8rem 1.5rem;
-      margin: 1rem;
-      cursor: pointer;
-      background-color: #0074D9;
-      color: white;
-      border: none;
-      border-radius: 5px;
-    }
   </style>
 </head>
 <body>
   <img id="logo" src="https://docs.google.com/drawings/d/e/2PACX-1vQthbu25WufVsdyuxQOvj6Q3ColCj6gv5NB_nQsXCWAuGGNj3N9bBoTWPvfkJSrsEfX8IUFZKEDJK8c/pub?w=1440&h=1080" alt="Logo" />
-  <button id="startBtn">Start Scoreboard</button>
   <div id="time">Loading...</div>
 
   <div class="team-blocks">
@@ -107,6 +96,7 @@
 
       const timeElem = document.getElementById("time");
       const buzzer = document.getElementById("buzzer");
+      const logo = document.getElementById("logo");
 
       let matchLength = 0;
       let halftimeLength = 0;
@@ -116,9 +106,12 @@
       let countdownInterval = null;
       let firstLoad = true;
       let phase = "first"; // "first", "halftime", "second", "end"
+      let paused = true;
+      let useHalftime = true;
 
       function parseTimeToSeconds(timeStr) {
-        const parts = timeStr.split(':');
+        if (!timeStr || timeStr.trim() === "") return 0;
+        const parts = timeStr.split(":");
         return parseInt(parts[0]) * 60 + parseInt(parts[1]);
       }
 
@@ -141,9 +134,10 @@
             if (firstLoad) {
               matchLength = newMatch;
               halftimeLength = newHalftime;
-              halftimeStart = Math.floor(matchLength / 2);
+              useHalftime = halftimeLength > 0;
+              halftimeStart = useHalftime ? Math.floor(matchLength / 2) : 0;
               timeRemaining = matchLength;
-              startClock();
+              timeElem.textContent = formatTime(timeRemaining);
               firstLoad = false;
             }
 
@@ -158,13 +152,14 @@
       }
 
       function startClock() {
-        timeElem.textContent = formatTime(timeRemaining);
-
+        if (countdownInterval) return; // prevent multiple intervals
         countdownInterval = setInterval(() => {
+          if (paused || phase === "end") return;
+
           if (phase === "first") {
             timeRemaining--;
             timeElem.textContent = formatTime(timeRemaining);
-            if (timeRemaining === halftimeStart) {
+            if (useHalftime && timeRemaining === halftimeStart) {
               buzzer.play();
               phase = "halftime";
               document.body.classList.add("halftime");
@@ -185,23 +180,26 @@
             if (timeRemaining === 0) {
               buzzer.play();
               phase = "end";
+              timeElem.textContent = "00:00";
             }
-          } else if (phase === "end") {
-            timeElem.textContent = "00:00";
           }
         }, 1000);
       }
 
-      document.getElementById("startBtn").addEventListener("click", () => {
-        // Unlock buzzer permission
+      logo.addEventListener("click", () => {
         buzzer.play().then(() => {
           buzzer.pause();
           buzzer.currentTime = 0;
         }).catch(() => {});
-        document.getElementById("startBtn").style.display = "none";
-        fetchData();
-        setInterval(fetchData, 5000); // Refresh names/scores every 5s
+
+        paused = !paused;
+        if (!countdownInterval) {
+          startClock();
+        }
       });
+
+      fetchData();
+      setInterval(fetchData, 5000);
     });
   </script>
 </body>

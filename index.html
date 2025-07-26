@@ -105,7 +105,7 @@
       let timeRemaining = 0;
       let countdownInterval = null;
       let firstLoad = true;
-      let phase = "first"; // "first", "halftime", "second", "end"
+      let phase = "first"; // "first", "halftime", "halftime-pause", "second", "end"
       let paused = true;
       let useHalftime = true;
 
@@ -161,7 +161,8 @@
             timeElem.textContent = formatTime(timeRemaining);
             if (useHalftime && timeRemaining === halftimeStart) {
               buzzer.play();
-              phase = "halftime";
+              phase = "halftime-pause";
+              paused = true;
               document.body.classList.add("halftime");
               halftimeTimer = 0;
             }
@@ -171,8 +172,8 @@
             if (halftimeTimer >= halftimeLength) {
               buzzer.play();
               phase = "second";
-              document.body.classList.remove("halftime");
               timeRemaining = halftimeStart;
+              document.body.classList.remove("halftime");
             }
           } else if (phase === "second") {
             timeRemaining--;
@@ -192,7 +193,13 @@
           buzzer.currentTime = 0;
         }).catch(() => {});
 
-        paused = !paused;
+        if (phase === "halftime-pause") {
+          paused = false;
+          phase = "halftime";
+        } else {
+          paused = !paused;
+        }
+
         if (!countdownInterval) {
           startClock();
         }

@@ -1,123 +1,89 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Bristol UWH Scoreboard</title>
+  <title>UWH Scoreboard</title>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
       margin: 0;
-      background: linear-gradient(to bottom, #001f3f, #001133);
-      color: white;
       font-family: 'Segoe UI', sans-serif;
+      background: url('https://docs.google.com/drawings/d/e/2PACX-1vQthbu25WufVsdyuxQOvj6Q3ColCj6gv5NB_nQsXCWAuGGNj3N9bBoTWPvfkJSrsEfX8IUFZKEDJK8c/pub?w=1440&h=1080') no-repeat center center;
+      background-size: cover;
+      color: #fff;
+      text-align: center;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      min-height: 100vh;
-      padding-top: 2vh;
-    }
-
-    img.logo {
-      max-height: 100px;
-      margin-bottom: 1vh;
-    }
-
-    #matchLength {
-      font-size: 5vw;
-      margin: 1vh 0 2vh;
-    }
-
-    .scoreboard {
-      display: flex;
       justify-content: center;
+      height: 100vh;
+    }
+
+    #time {
+      font-size: 5vw;
+      margin-bottom: 3vh;
+    }
+
+    .teams {
+      display: flex;
+      justify-content: space-around;
       align-items: center;
-      gap: 10vw;
-      width: 100%;
-      max-width: 1200px;
-    }
-
-    .team {
-      text-align: center;
-      flex: 1;
-    }
-
-    .team-name {
-      font-size: 2.5vw;
-      font-weight: 600;
-      margin-bottom: 1vh;
-    }
-
-    .team-score {
-      font-size: 6vw;
+      font-size: 2vw;
       font-weight: bold;
     }
 
-    .divider {
-      height: 10vh;
-      width: 1px;
-      background: rgba(255,255,255,0.3);
+    .scores {
+      display: flex;
+      justify-content: space-around;
+      font-size: 8vw;
+      margin-top: 1vh;
     }
 
-    #timer {
-      font-size: 2.5vw;
-      margin-top: 2vh;
-      opacity: 0.85;
+    .divider {
+      height: 8vw;
+      width: 2px;
+      background: rgba(255, 255, 255, 0.4);
     }
   </style>
 </head>
 <body>
-  <img src="https://docs.google.com/drawings/d/e/2PACX-1vQthbu25WufVsdyuxQOvj6Q3ColCj6gv5NB_nQsXCWAuGGNj3N9bBoTWPvfkJSrsEfX8IUFZKEDJK8c/pub?w=1440&h=1080"
-       alt="Tournament Logo" class="logo" />
-
-  <div id="matchLength">Loading...</div>
-
-  <div class="scoreboard">
-    <div class="team">
-      <div class="team-name" id="team1">Team 1</div>
-      <div class="team-score" id="score1">0</div>
-    </div>
+  <div id="time">Loading...</div>
+  <div class="teams">
+    <div id="team1">Team A</div>
     <div class="divider"></div>
-    <div class="team">
-      <div class="team-name" id="team2">Team 2</div>
-      <div class="team-score" id="score2">0</div>
-    </div>
+    <div id="team2">Team B</div>
+  </div>
+  <div class="scores">
+    <div id="score1">0</div>
+    <div class="divider"></div>
+    <div id="score2">0</div>
   </div>
 
-  <div id="timer"></div>
-
   <script>
-    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTagkwva78c81RiOqezfmbosZMW8SJ2mP3rK63KVxlinyVIcF6L8N0sWsLBGA0WMdYVjWU8mk-uWiuY/pub?gid=2001550285&single=true&output=csv";
+    const SHEET_ID = "1b6gofMejj1tXHA1o-fYcCBuV6RhMRiPbT8jQY8S2Y";
+    const API_KEY = "AIzaSyCaxh4c4PwWwCM3zVm35FoNlaY5NbXWH7c";
+    const RANGE = "Settings!B1:B7";
+    const API_URL = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`;
 
-    async function fetchData() {
+    async function updateScoreboard() {
       try {
-        const response = await fetch(CSV_URL + "&_=" + Date.now());
-        const text = await response.text();
-        const lines = text.trim().split("\n").map(row =>
-          row.split(",").map(cell => cell.replace(/^"|"$/g, ""))
-        );
+        const res = await fetch(API_URL);
+        const data = await res.json();
+        const rows = data.values;
 
-        const matchLength = lines[0][1]; // B1
-        const team1 = lines[2][1];       // B3
-        const score1 = lines[3][1];      // B4
-        const team2 = lines[4][1];       // B5
-        const score2 = lines[5][1];      // B6
-        const timer = lines[6]?.[1] || "";
-
-        document.getElementById("matchLength").textContent = matchLength;
-        document.getElementById("team1").textContent = team1;
-        document.getElementById("score1").textContent = score1;
-        document.getElementById("team2").textContent = team2;
-        document.getElementById("score2").textContent = score2;
-        document.getElementById("timer").textContent = timer;
-
-      } catch (error) {
-        console.error("Error fetching data:", error);
+        if (rows && rows.length >= 6) {
+          document.getElementById("time").textContent = rows[0][0] || '';
+          document.getElementById("team1").textContent = rows[2][0] || '';
+          document.getElementById("score1").textContent = rows[3][0] || '0';
+          document.getElementById("team2").textContent = rows[4][0] || '';
+          document.getElementById("score2").textContent = rows[5][0] || '0';
+        }
+      } catch (err) {
+        console.error("Error fetching sheet data:", err);
       }
     }
 
-    setInterval(fetchData, 1000);
-    fetchData();
+    updateScoreboard();
+    setInterval(updateScoreboard, 1000);
   </script>
 </body>
 </html>

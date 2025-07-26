@@ -130,7 +130,7 @@
           const data = await res.json();
           const rows = data.values;
 
-          if (rows && rows.length >= 9) {
+          if (rows && rows.length >= 7) {
             const newMatch = parseTimeToSeconds(rows[0][0]);
             const newHalftime = parseTimeToSeconds(rows[1][0]);
             const statusValue = (rows[8][0] || '').toLowerCase();

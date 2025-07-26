@@ -27,7 +27,7 @@
     }
 
     #time {
-      font-size: 12vw;
+      font-size: 10vw;
       margin: 1vh 0 2vh;
     }
 
@@ -91,7 +91,7 @@
     document.addEventListener("DOMContentLoaded", function () {
       const SHEET_ID = "1b6gofMejj1tXHA1o-yFvCBuV6RhMRiPbTl8iJQY8SzY";
       const API_KEY = "AIzaSyCaxh4c4PwWwCM3zVm35FoNlaY5NbXWH7c";
-      const RANGE = "Settings!B1:B7";
+      const RANGE = "Settings!B1:B10";
       const API_URL = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`;
 
       const timeElem = document.getElementById("time");
@@ -105,7 +105,7 @@
       let timeRemaining = 0;
       let countdownInterval = null;
       let firstLoad = true;
-      let phase = "first"; // "first", "halftime", "halftime-pause", "second", "end"
+      let phase = "first";
       let paused = true;
       let useHalftime = true;
 
@@ -127,9 +127,21 @@
           const data = await res.json();
           const rows = data.values;
 
-          if (rows && rows.length >= 7) {
+          if (rows && rows.length >= 10) {
             const newMatch = parseTimeToSeconds(rows[0][0]);
             const newHalftime = parseTimeToSeconds(rows[1][0]);
+            const statusValue = (rows[9][0] || '').toLowerCase();
+
+            if (statusValue === "pause") {
+              paused = true;
+            } else if (statusValue === "play") {
+              if (phase === "halftime-pause") {
+                paused = false;
+                phase = "halftime";
+              } else {
+                paused = false;
+              }
+            }
 
             if (firstLoad) {
               matchLength = newMatch;
@@ -206,7 +218,7 @@
       });
 
       fetchData();
-      setInterval(fetchData, 1000); // score update frequency set to every second
+      setInterval(fetchData, 1000);
     });
   </script>
 </body>

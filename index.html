@@ -27,7 +27,7 @@
     }
 
     #time {
-      font-size: 18vw;
+      font-size: 10vw;
       margin: 1vh 0 2vh;
     }
 
@@ -54,7 +54,7 @@
     }
 
     .team-score {
-      font-size: 10vw;
+      font-size: 7vw;
       font-weight: bold;
     }
 
@@ -91,8 +91,11 @@
     document.addEventListener("DOMContentLoaded", function () {
       const SHEET_ID = "1b6gofMejj1tXHA1o-yFvCBuV6RhMRiPbTl8iJQY8SzY";
       const API_KEY = "AIzaSyCaxh4c4PwWwCM3zVm35FoNlaY5NbXWH7c";
-      const RANGE = "Settings!B1:B7";
+      const column = new URLSearchParams(window.location.search).get("column") || "B";
+      const RANGE = `Settings!${column}2:${column}11`;
+      const WRITE_RANGE = `Settings!${column}9`;
       const API_URL = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`;
+      const WRITE_URL = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${WRITE_RANGE}?valueInputOption=RAW&key=${API_KEY}`;
 
       const timeElem = document.getElementById("time");
       const buzzer = document.getElementById("buzzer");
@@ -105,7 +108,7 @@
       let timeRemaining = 0;
       let countdownInterval = null;
       let firstLoad = true;
-      let phase = "first"; // "first", "halftime", "halftime-pause", "second", "end"
+      let phase = "first";
       let paused = true;
       let useHalftime = true;
 
@@ -127,9 +130,21 @@
           const data = await res.json();
           const rows = data.values;
 
-          if (rows && rows.length >= 7) {
+          if (rows && rows.length >= 9) {
             const newMatch = parseTimeToSeconds(rows[0][0]);
             const newHalftime = parseTimeToSeconds(rows[1][0]);
+            const statusValue = (rows[8][0] || '').toLowerCase();
+
+            if (statusValue === "pause") {
+              paused = true;
+            } else if (statusValue === "play") {
+              if (phase === "halftime-pause") {
+                paused = false;
+                phase = "halftime";
+              } else {
+                paused = false;
+              }
+            }
 
             if (firstLoad) {
               matchLength = newMatch;
@@ -151,6 +166,19 @@
         }
       }
 
+      async function updateTimerInSheet(time) {
+        const body = JSON.stringify({ values: [[time]] });
+        try {
+          await fetch(WRITE_URL, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body
+          });
+        } catch (err) {
+          console.error("Error updating timer:", err);
+        }
+      }
+
       function startClock() {
         if (countdownInterval) return;
         countdownInterval = setInterval(() => {
@@ -159,6 +187,7 @@
           if (phase === "first") {
             timeRemaining--;
             timeElem.textContent = formatTime(timeRemaining);
+            updateTimerInSheet(timeElem.textContent);
             if (useHalftime && timeRemaining === halftimeStart) {
               buzzer.play();
               phase = "halftime-pause";
@@ -169,6 +198,7 @@
           } else if (phase === "halftime") {
             halftimeTimer++;
             timeElem.textContent = formatTime(halftimeTimer);
+            updateTimerInSheet(timeElem.textContent);
             if (halftimeTimer >= halftimeLength) {
               buzzer.play();
               phase = "second";
@@ -178,10 +208,12 @@
           } else if (phase === "second") {
             timeRemaining--;
             timeElem.textContent = formatTime(timeRemaining);
+            updateTimerInSheet(timeElem.textContent);
             if (timeRemaining === 0) {
               buzzer.play();
               phase = "end";
               timeElem.textContent = "00:00";
+              updateTimerInSheet("00:00");
             }
           }
         }, 1000);
@@ -206,7 +238,7 @@
       });
 
       fetchData();
-      setInterval(fetchData, 2000); // score update frequency set to every second
+      setInterval(fetchData, 1000);
     });
   </script>
 </body>

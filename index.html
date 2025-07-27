@@ -34,12 +34,12 @@
     }
 
     #overlay-logo {
-      width: 300px;
+      width: 400px;
       margin-bottom: 20px;
     }
 
     #overlay-text {
-      font-size: 4vw;
+      font-size: 3vw;
       color: #fff;
       margin-bottom: 2vh;
     }
@@ -101,9 +101,19 @@
 <body>
   <div id="overlay">
     <img id="overlay-logo" src="https://docs.google.com/drawings/d/e/2PACX-1vSAQOMrJ8yyW0HKg4EafVhUXREcNNx5R7wbvlI4aPBAq5Sx4teZT0A1YNN6NccS--EwdQHNSQ2RkwPs/pub?w=1256&h=414" alt="Logo">
-    <div id="overlay-text"></div>
+    <div class="team-blocks">
+      <div class="team">
+        <div id="overlay-team1" class="team-name">Team A</div>
+      </div>
+      <div class="divider"></div>
+      <div class="team">
+        <div id="overlay-team2" class="team-name">Team B</div>
+      </div>
+    </div>
+    <div id="overlay-text">Starting in</div>
     <div id="overlay-timer"></div>
   </div>
+
   <img id="logo" src="https://docs.google.com/drawings/d/e/2PACX-1vQthbu25WufVsdyuxQOvj6Q3ColCj6gv5NB_nQsXCWAuGGNj3N9bBoTWPvfkJSrsEfX8IUFZKEDJK8c/pub?w=1440&h=1080" alt="Logo" />
   <div id="time">Loading...</div>
   <div class="team-blocks">
@@ -132,6 +142,9 @@
       const overlay = document.getElementById("overlay");
       const overlayText = document.getElementById("overlay-text");
       const overlayTimer = document.getElementById("overlay-timer");
+      const overlayTeam1 = document.getElementById("overlay-team1");
+      const overlayTeam2 = document.getElementById("overlay-team2");
+
       const timeElem = document.getElementById("time");
       const buzzer = document.getElementById("buzzer");
       const alarm = document.getElementById("alarm");
@@ -185,6 +198,8 @@
             document.getElementById("team2").textContent = team2;
             document.getElementById("score1").textContent = score1;
             document.getElementById("score2").textContent = score2;
+            overlayTeam1.textContent = team1;
+            overlayTeam2.textContent = team2;
 
             if (phase === "pregame") {
               startPregameCountdown(pregameCountdown, () => {
@@ -210,12 +225,11 @@
 
       function startPregameCountdown(seconds, callback) {
         overlay.style.display = "flex";
-        overlayText.textContent = "Starting in";
         overlayTimer.style.color = "red";
         alarm.play();
         let count = seconds;
         const interval = setInterval(() => {
-          overlayTimer.textContent = count;
+          overlayTimer.textContent = formatTime(count);
           count--;
           if (count < 0) {
             clearInterval(interval);

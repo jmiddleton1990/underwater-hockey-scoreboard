@@ -122,6 +122,12 @@
 
   <script>
     document.addEventListener("DOMContentLoaded", function () {
+      const column = new URLSearchParams(window.location.search).get("column") || "B";
+      const SHEET_ID = "1b6gofMejj1tXHA1o-yFvCBuV6RhMRiPbTl8iJQY8SzY";
+      const API_KEY = "AIzaSyCaxh4c4PwWwCM3zVm35FoNlaY5NbXWH7c";
+      const RANGE = `Settings!${column}2:${column}15`;
+      const API_URL = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`;
+
       const overlay = document.getElementById("overlay");
       const overlayText = document.getElementById("overlay-text");
       const overlayTimer = document.getElementById("overlay-timer");
@@ -168,8 +174,26 @@
         }, 1000);
       }
 
-      // Example trigger with restart timer from spreadsheet:
-      // showOverlay("final", "Team A", "Team B", 3, 2, 5);
+      async function loadAndTriggerOverlay() {
+        try {
+          const res = await fetch(API_URL);
+          const data = await res.json();
+          const values = data.values;
+          const restartTime = values[0][0] || "00:05";
+          const [min, sec] = restartTime.split(":");
+          const countdownSeconds = parseInt(min) * 60 + parseInt(sec);
+          const team1 = values[12]?.[0] || "Team A";
+          const team2 = values[13]?.[0] || "Team B";
+          const score1 = document.getElementById("score1").textContent;
+          const score2 = document.getElementById("score2").textContent;
+          showOverlay("final", team1, team2, score1, score2, countdownSeconds);
+        } catch (e) {
+          console.error("Error loading overlay info", e);
+        }
+      }
+
+      // Trigger overlay for testing:
+      // loadAndTriggerOverlay();
     });
   </script>
 </body>

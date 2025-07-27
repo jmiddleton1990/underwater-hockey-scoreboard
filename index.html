@@ -157,15 +157,6 @@
       const buzzer = document.getElementById("buzzer");
       const alarm = document.getElementById("alarm");
 
-      let buzzerPrimed = false;
-      document.body.addEventListener('click', () => {
-        buzzer.play().then(() => {
-          buzzer.pause();
-          buzzer.currentTime = 0;
-          buzzerPrimed = true;
-        }).catch(() => {});
-      }, { once: true });
-
       let matchLength = 0, halftimeLength = 0, halftimeStart = 0;
       let timeRemaining = 0, halftimeTimer = 0, pregameCountdown = 0;
       let countdownInterval = null;
@@ -191,40 +182,33 @@
           const rows = data.values;
 
           if (rows.length >= 14) {
-            pregameCountdown = parseTimeToSeconds(rows[0]?.[0] || "00:05");
-            matchLength = parseTimeToSeconds(rows[1]?.[0] || "00:10");
-            halftimeLength = parseTimeToSeconds(rows[2]?.[0] || "00:05");
-            halftimeStart = Math.floor(matchLength / 2);
-
-            const team1 = rows[5]?.[0] || "Team A";
-            const team2 = rows[7]?.[0] || "Team B";
-            const score1 = rows[6]?.[0] || "0";
-            const score2 = rows[8]?.[0] || "0";
+            const newPregame = parseTimeToSeconds(rows[0]?.[0] || "00:05");
+            const newMatch = parseTimeToSeconds(rows[1]?.[0] || "00:10");
+            const newHalftime = parseTimeToSeconds(rows[2]?.[0] || "00:05");
             const status = (rows[10]?.[0] || "Pause").toLowerCase();
 
-            document.getElementById("team1").textContent = team1;
-            document.getElementById("team2").textContent = team2;
-            document.getElementById("score1").textContent = score1;
-            document.getElementById("score2").textContent = score2;
-            overlayTeam1.textContent = team1;
-            overlayTeam2.textContent = team2;
+            pregameCountdown = newPregame;
+            matchLength = newMatch;
+            halftimeLength = newHalftime;
+            halftimeStart = Math.floor(matchLength / 2);
+
+            document.getElementById("team1").textContent = rows[5]?.[0] || "Team A";
+            document.getElementById("team2").textContent = rows[7]?.[0] || "Team B";
+            document.getElementById("score1").textContent = rows[6]?.[0] || "0";
+            document.getElementById("score2").textContent = rows[8]?.[0] || "0";
+            overlayTeam1.textContent = rows[5]?.[0] || "Team A";
+            overlayTeam2.textContent = rows[7]?.[0] || "Team B";
 
             if (phase === "pregame") {
               startPregameCountdown(pregameCountdown, () => {
                 phase = "first";
                 timeRemaining = matchLength;
                 timeElem.textContent = formatTime(timeRemaining);
-                if (status === "play") {
-                  paused = false;
-                  startClock();
-                }
               });
               phase = "waiting";
-            } else if (status === "play") {
-              paused = false;
-            } else {
-              paused = true;
             }
+
+            paused = (status !== "play");
           }
         } catch (err) {
           console.error("Fetch error:", err);
@@ -269,12 +253,11 @@
               document.body.classList.add("halftime");
               setTimeout(() => {
                 phase = "halftime";
-                paused = false;
                 halftimeTimer = halftimeLength;
               }, 500);
             }
           } else if (phase === "halftime") {
-            halftimeTimer--;
+            if (halftimeTimer > 0) halftimeTimer--;
             timeElem.textContent = formatTime(halftimeTimer);
             if (halftimeTimer <= 0) {
               buzzer.play();
@@ -283,7 +266,7 @@
               document.body.classList.remove("halftime");
             }
           } else if (phase === "second") {
-            timeRemaining--;
+            if (timeRemaining > 0) timeRemaining--;
             timeElem.textContent = formatTime(timeRemaining);
             if (timeRemaining === 0) {
               buzzer.play();
@@ -296,6 +279,7 @@
 
       fetchData();
       setInterval(fetchData, 1000);
+      startClock();
     });
   </script>
 </body>

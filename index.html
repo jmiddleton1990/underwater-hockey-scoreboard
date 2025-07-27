@@ -23,7 +23,6 @@
       width: 400px;
       max-width: 80%;
       margin-top: 30px;
-      cursor: pointer;
     }
 
     #time {
@@ -93,13 +92,10 @@
       const API_KEY = "AIzaSyCaxh4c4PwWwCM3zVm35FoNlaY5NbXWH7c";
       const column = new URLSearchParams(window.location.search).get("column") || "B";
       const RANGE = `Settings!${column}2:${column}10`;
-      const STATUS_RANGE = `Settings!${column}10`;
       const API_URL = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`;
-      const STATUS_URL = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${STATUS_RANGE}?valueInputOption=RAW&key=${API_KEY}`;
 
       const timeElem = document.getElementById("time");
       const buzzer = document.getElementById("buzzer");
-      const logo = document.getElementById("logo");
 
       let matchLength = 0;
       let halftimeLength = 0;
@@ -124,25 +120,13 @@
         return `${mins}:${secs}`;
       }
 
-      async function updateStatus(newStatus) {
-        try {
-          await fetch(STATUS_URL, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ values: [[newStatus]] })
-          });
-        } catch (err) {
-          console.error("Error updating status:", err);
-        }
-      }
-
       async function fetchData() {
         try {
           const res = await fetch(API_URL);
           const data = await res.json();
           const rows = data.values;
 
-          if (rows && rows.length >= 8) {
+          if (rows && rows.length >= 9) {
             const newMatch = parseTimeToSeconds(rows[0][0]);
             const newHalftime = parseTimeToSeconds(rows[1][0]);
             const statusValue = rows[8][0]?.toLowerCase();
@@ -155,8 +139,6 @@
               timeRemaining = matchLength;
               timeElem.textContent = formatTime(timeRemaining);
               firstLoad = false;
-              paused = true;
-              await updateStatus("Pause");
             }
 
             if (statusValue === "play" && paused) {
@@ -187,7 +169,6 @@
               buzzer.play();
               phase = "halftime-pause";
               paused = true;
-              updateStatus("Pause");
               document.body.classList.add("halftime");
               halftimeTimer = 0;
             }
@@ -211,25 +192,6 @@
           }
         }, 1000);
       }
-
-      logo.addEventListener("click", async () => {
-        buzzer.play().then(() => {
-          buzzer.pause();
-          buzzer.currentTime = 0;
-        }).catch(() => {});
-
-        paused = !paused;
-        const newStatus = paused ? "Pause" : "Play";
-        await updateStatus(newStatus);
-
-        if (phase === "halftime-pause" && !paused) {
-          phase = "halftime";
-        }
-
-        if (!countdownInterval) {
-          startClock();
-        }
-      });
 
       fetchData();
       setInterval(fetchData, 1000);

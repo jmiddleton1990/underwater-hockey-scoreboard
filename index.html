@@ -193,7 +193,7 @@
             document.getElementById("score1").textContent = rows[6]?.[0] || "0";
             document.getElementById("score2").textContent = rows[8]?.[0] || "0";
 
-            if (phase === "pregame") {
+            if (phase === "pregame" && overlayCountdown === 0) {
               pregameCountdown = newPregame;
               overlayCountdown = pregameCountdown;
               overlay.style.display = "flex";

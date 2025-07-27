@@ -143,9 +143,15 @@
 
             if (statusValue === "play" && paused) {
               paused = false;
-              if (phase === "halftime-pause") phase = "halftime";
+              if (phase === "halftime-pause") {
+                phase = "halftime";
+                halftimeTimer = 0;
+                timeElem.textContent = formatTime(halftimeLength);
+              }
             }
-            if (statusValue === "pause" && !paused) paused = true;
+            if (statusValue === "pause" && !paused) {
+              paused = true;
+            }
 
             document.getElementById("team1").textContent = rows[3][0] || 'Team A';
             document.getElementById("score1").textContent = rows[4][0] || '0';
@@ -170,7 +176,6 @@
               phase = "halftime-pause";
               paused = true;
               document.body.classList.add("halftime");
-              halftimeTimer = 0;
             }
           } else if (phase === "halftime") {
             halftimeTimer++;
@@ -180,9 +185,7 @@
               phase = "second";
               timeRemaining = halftimeStart;
               document.body.classList.remove("halftime");
-  }
-}
-
+            }
           } else if (phase === "second") {
             timeRemaining--;
             timeElem.textContent = formatTime(timeRemaining);

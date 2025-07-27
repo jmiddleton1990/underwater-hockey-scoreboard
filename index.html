@@ -93,7 +93,7 @@
       const API_KEY = "AIzaSyCaxh4c4PwWwCM3zVm35FoNlaY5NbXWH7c";
       const column = new URLSearchParams(window.location.search).get("column") || "B";
       const RANGE = `Settings!${column}2:${column}10`;
-      const STATUS_RANGE = `Settings!${column}10:${column}10`;
+      const STATUS_RANGE = `Settings!${column}10`;
       const API_URL = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`;
       const STATUS_URL = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${STATUS_RANGE}?key=${API_KEY}`;
 
@@ -193,17 +193,29 @@
         }, 1000);
       }
 
-      logo.addEventListener("click", () => {
+      logo.addEventListener("click", async () => {
         buzzer.play().then(() => {
           buzzer.pause();
           buzzer.currentTime = 0;
         }).catch(() => {});
 
-        if (phase === "halftime-pause") {
-          paused = false;
+        paused = !paused;
+
+        const newStatus = paused ? "Pause" : "Play";
+        const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${STATUS_RANGE}?valueInputOption=RAW&key=${API_KEY}`;
+
+        try {
+          await fetch(updateUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ values: [[newStatus]] })
+          });
+        } catch (err) {
+          console.error("Error updating status:", err);
+        }
+
+        if (phase === "halftime-pause" && !paused) {
           phase = "halftime";
-        } else {
-          paused = !paused;
         }
 
         if (!countdownInterval) {

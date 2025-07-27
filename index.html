@@ -124,6 +124,18 @@
         return `${mins}:${secs}`;
       }
 
+      async function updateStatus(newStatus) {
+        try {
+          await fetch(STATUS_URL, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ values: [[newStatus]] })
+          });
+        } catch (err) {
+          console.error("Error updating status:", err);
+        }
+      }
+
       async function fetchData() {
         try {
           const res = await fetch(API_URL);
@@ -146,6 +158,7 @@
               timeRemaining = matchLength;
               timeElem.textContent = formatTime(timeRemaining);
               firstLoad = false;
+              paused = true;
               await updateStatus("Pause");
             }
 
@@ -156,18 +169,6 @@
           }
         } catch (err) {
           console.error("Error fetching sheet data:", err);
-        }
-      }
-
-      async function updateStatus(newStatus) {
-        try {
-          await fetch(STATUS_URL, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ values: [[newStatus]] })
-          });
-        } catch (err) {
-          console.error("Error updating status:", err);
         }
       }
 

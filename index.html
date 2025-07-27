@@ -19,6 +19,17 @@
       transition: background-color 0.5s;
     }
 
+    #blackout {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: black;
+      z-index: 9999;
+      display: none;
+    }
+
     #logo {
       width: 400px;
       max-width: 80%;
@@ -69,6 +80,7 @@
   </style>
 </head>
 <body>
+  <div id="blackout"></div>
   <img id="logo" src="https://docs.google.com/drawings/d/e/2PACX-1vQthbu25WufVsdyuxQOvj6Q3ColCj6gv5NB_nQsXCWAuGGNj3N9bBoTWPvfkJSrsEfX8IUFZKEDJK8c/pub?w=1440&h=1080" alt="Logo" />
   <div id="time">Loading...</div>
 
@@ -96,6 +108,7 @@
 
       const timeElem = document.getElementById("time");
       const buzzer = document.getElementById("buzzer");
+      const blackout = document.getElementById("blackout");
 
       let matchLength = 0;
       let halftimeLength = 0;
@@ -153,11 +166,12 @@
             if (statusValue === "play" && paused) {
               paused = false;
               if (phase === "halftime-pause") {
-                timeElem.textContent = formatTime(halftimeLength);
+                blackout.style.display = "block";
                 setTimeout(() => {
+                  blackout.style.display = "none";
                   halftimeTimer = 0;
                   phase = "halftime";
-                }, 500);
+                }, 1000);
               }
             } else if (statusValue === "pause" && !paused) {
               paused = true;
@@ -186,9 +200,7 @@
               phase = "halftime-pause";
               paused = true;
               document.body.classList.add("halftime");
-              setTimeout(() => {
-                timeElem.textContent = formatTime(halftimeLength);
-              }, 50);
+              timeElem.textContent = formatTime(halftimeLength);
             }
           } else if (phase === "halftime") {
             halftimeTimer++;

@@ -180,7 +180,9 @@
               phase = "second";
               timeRemaining = halftimeStart;
               document.body.classList.remove("halftime");
-            }
+  }
+}
+
           } else if (phase === "second") {
             timeRemaining--;
             timeElem.textContent = formatTime(timeRemaining);

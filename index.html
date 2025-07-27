@@ -108,6 +108,15 @@
       let paused = true;
       let useHalftime = true;
 
+      let buzzerPrimed = false;
+      document.body.addEventListener('click', () => {
+        buzzer.play().then(() => {
+          buzzer.pause();
+          buzzer.currentTime = 0;
+          buzzerPrimed = true;
+        }).catch(() => {});
+      }, { once: true });
+
       function parseTimeToSeconds(timeStr) {
         if (!timeStr || timeStr.trim() === "") return 0;
         const parts = timeStr.split(":");
@@ -144,9 +153,11 @@
             if (statusValue === "play" && paused) {
               paused = false;
               if (phase === "halftime-pause") {
-                phase = "halftime";
-                halftimeTimer = 0;
-                timeElem.textContent = formatTime(halftimeLength);
+                setTimeout(() => {
+                  phase = "halftime";
+                  halftimeTimer = 0;
+                  timeElem.textContent = formatTime(halftimeLength);
+                }, 500);
               }
             }
             if (statusValue === "pause" && !paused) paused = true;
@@ -170,7 +181,7 @@
             timeRemaining--;
             timeElem.textContent = formatTime(timeRemaining);
             if (useHalftime && timeRemaining === halftimeStart) {
-              buzzer.play();
+              if (buzzerPrimed) buzzer.play();
               phase = "halftime-pause";
               paused = true;
               document.body.classList.add("halftime");
@@ -180,7 +191,7 @@
             const timeLeft = halftimeLength - halftimeTimer;
             timeElem.textContent = formatTime(timeLeft);
             if (timeLeft <= 0) {
-              buzzer.play();
+              if (buzzerPrimed) buzzer.play();
               phase = "second";
               timeRemaining = halftimeStart;
               document.body.classList.remove("halftime");
@@ -191,7 +202,7 @@
             if (timeRemaining <= 0) {
               timeElem.textContent = "00:00";
               phase = "end";
-              buzzer.play();
+              if (buzzerPrimed) buzzer.play();
             }
           }
         }, 1000);

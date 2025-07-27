@@ -154,13 +154,13 @@
               paused = false;
               if (phase === "halftime-pause") {
                 setTimeout(() => {
-                  phase = "halftime";
                   halftimeTimer = 0;
-                  timeElem.textContent = formatTime(halftimeLength);
+                  phase = "halftime";
                 }, 500);
               }
+            } else if (statusValue === "pause" && !paused) {
+              paused = true;
             }
-            if (statusValue === "pause" && !paused) paused = true;
 
             document.getElementById("team1").textContent = rows[3][0] || 'Team A';
             document.getElementById("score1").textContent = rows[4][0] || '0';

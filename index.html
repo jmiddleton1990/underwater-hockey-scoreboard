@@ -95,7 +95,7 @@
       const RANGE = `Settings!${column}2:${column}10`;
       const STATUS_RANGE = `Settings!${column}10`;
       const API_URL = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`;
-      const STATUS_URL = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${STATUS_RANGE}?key=${API_KEY}`;
+      const STATUS_URL = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${STATUS_RANGE}?valueInputOption=RAW&key=${API_KEY}`;
 
       const timeElem = document.getElementById("time");
       const buzzer = document.getElementById("buzzer");
@@ -135,7 +135,8 @@
             const newHalftime = parseTimeToSeconds(rows[1][0]);
             const statusValue = rows[8][0]?.toLowerCase();
 
-            paused = statusValue !== "play";
+            if (statusValue === "play" && paused) paused = false;
+            if (statusValue === "pause" && !paused) paused = true;
 
             if (firstLoad) {
               matchLength = newMatch;
@@ -145,6 +146,7 @@
               timeRemaining = matchLength;
               timeElem.textContent = formatTime(timeRemaining);
               firstLoad = false;
+              await updateStatus("Pause");
             }
 
             document.getElementById("team1").textContent = rows[3][0] || 'Team A';
@@ -154,6 +156,18 @@
           }
         } catch (err) {
           console.error("Error fetching sheet data:", err);
+        }
+      }
+
+      async function updateStatus(newStatus) {
+        try {
+          await fetch(STATUS_URL, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ values: [[newStatus]] })
+          });
+        } catch (err) {
+          console.error("Error updating status:", err);
         }
       }
 
@@ -169,6 +183,7 @@
               buzzer.play();
               phase = "halftime-pause";
               paused = true;
+              updateStatus("Pause");
               document.body.classList.add("halftime");
               halftimeTimer = 0;
             }
@@ -200,19 +215,8 @@
         }).catch(() => {});
 
         paused = !paused;
-
         const newStatus = paused ? "Pause" : "Play";
-        const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${STATUS_RANGE}?valueInputOption=RAW&key=${API_KEY}`;
-
-        try {
-          await fetch(updateUrl, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ values: [[newStatus]] })
-          });
-        } catch (err) {
-          console.error("Error updating status:", err);
-        }
+        await updateStatus(newStatus);
 
         if (phase === "halftime-pause" && !paused) {
           phase = "halftime";
@@ -225,6 +229,7 @@
 
       fetchData();
       setInterval(fetchData, 1000);
+      startClock();
     });
   </script>
 </body>

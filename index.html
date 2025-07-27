@@ -153,6 +153,7 @@
             if (statusValue === "play" && paused) {
               paused = false;
               if (phase === "halftime-pause") {
+                timeElem.textContent = formatTime(halftimeLength);
                 setTimeout(() => {
                   halftimeTimer = 0;
                   phase = "halftime";
@@ -185,6 +186,9 @@
               phase = "halftime-pause";
               paused = true;
               document.body.classList.add("halftime");
+              setTimeout(() => {
+                timeElem.textContent = formatTime(halftimeLength);
+              }, 50);
             }
           } else if (phase === "halftime") {
             halftimeTimer++;

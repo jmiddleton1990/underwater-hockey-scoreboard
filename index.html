@@ -39,9 +39,9 @@
     }
 
     #overlay-text {
-      font-size: 3vw;
+      font-size: 2vw;
       color: #fff;
-      margin-bottom: 0;
+      margin-bottom: -1vh;
     }
 
     #overlay-timer {
@@ -162,6 +162,7 @@
       let countdownInterval = null;
       let phase = "pregame";
       let paused = true;
+      let overlayCountdown = 0;
 
       function parseTimeToSeconds(t) {
         if (!t) return 0;
@@ -187,27 +188,23 @@
             const newHalftime = parseTimeToSeconds(rows[2]?.[0] || "00:05");
             const status = (rows[10]?.[0] || "Pause").toLowerCase();
 
-            pregameCountdown = newPregame;
+            overlayTeam1.textContent = document.getElementById("team1").textContent = rows[5]?.[0] || "Team A";
+            overlayTeam2.textContent = document.getElementById("team2").textContent = rows[7]?.[0] || "Team B";
+            document.getElementById("score1").textContent = rows[6]?.[0] || "0";
+            document.getElementById("score2").textContent = rows[8]?.[0] || "0";
+
+            if (phase === "pregame") {
+              pregameCountdown = newPregame;
+              overlayCountdown = pregameCountdown;
+              overlay.style.display = "flex";
+              alarm.play();
+              overlayTimer.style.color = "white";
+              overlayTimer.classList.remove("flash");
+            }
+
             matchLength = newMatch;
             halftimeLength = newHalftime;
             halftimeStart = Math.floor(matchLength / 2);
-
-            document.getElementById("team1").textContent = rows[5]?.[0] || "Team A";
-            document.getElementById("team2").textContent = rows[7]?.[0] || "Team B";
-            document.getElementById("score1").textContent = rows[6]?.[0] || "0";
-            document.getElementById("score2").textContent = rows[8]?.[0] || "0";
-            overlayTeam1.textContent = rows[5]?.[0] || "Team A";
-            overlayTeam2.textContent = rows[7]?.[0] || "Team B";
-
-            if (phase === "pregame") {
-              startPregameCountdown(pregameCountdown, () => {
-                phase = "first";
-                timeRemaining = matchLength;
-                timeElem.textContent = formatTime(timeRemaining);
-              });
-              phase = "waiting";
-            }
-
             paused = (status !== "play");
           }
         } catch (err) {
@@ -215,34 +212,30 @@
         }
       }
 
-      function startPregameCountdown(seconds, callback) {
-        overlay.style.display = "flex";
-        overlayTimer.style.color = "white";
-        alarm.play();
-        let count = seconds;
-        const interval = setInterval(() => {
-          overlayTimer.textContent = formatTime(count);
-          if (count <= 3) {
-            overlayTimer.classList.add("flash");
-            overlayTimer.style.color = "red";
-          } else {
-            overlayTimer.classList.remove("flash");
-            overlayTimer.style.color = "white";
-          }
-          count--;
-          if (count < 0) {
-            clearInterval(interval);
-            overlay.style.display = "none";
-            alarm.pause();
-            alarm.currentTime = 0;
-            callback();
-          }
-        }, 1000);
-      }
-
       function startClock() {
         countdownInterval = setInterval(() => {
-          if (paused) return;
+          if (phase === "pregame") {
+            if (!paused) {
+              overlayTimer.textContent = formatTime(overlayCountdown);
+              if (overlayCountdown <= 3) {
+                overlayTimer.classList.add("flash");
+                overlayTimer.style.color = "red";
+              }
+              overlayCountdown--;
+              if (overlayCountdown < 0) {
+                alarm.pause();
+                alarm.currentTime = 0;
+                overlay.style.display = "none";
+                phase = "first";
+                timeRemaining = matchLength;
+                timeElem.textContent = formatTime(timeRemaining);
+              }
+            }
+            return;
+          }
+
+          if (paused || phase === "end") return;
+
           if (phase === "first") {
             timeRemaining--;
             timeElem.textContent = formatTime(timeRemaining);
@@ -257,7 +250,7 @@
               }, 500);
             }
           } else if (phase === "halftime") {
-            if (halftimeTimer > 0) halftimeTimer--;
+            halftimeTimer--;
             timeElem.textContent = formatTime(halftimeTimer);
             if (halftimeTimer <= 0) {
               buzzer.play();
@@ -266,9 +259,9 @@
               document.body.classList.remove("halftime");
             }
           } else if (phase === "second") {
-            if (timeRemaining > 0) timeRemaining--;
+            timeRemaining--;
             timeElem.textContent = formatTime(timeRemaining);
-            if (timeRemaining === 0) {
+            if (timeRemaining <= 0) {
               buzzer.play();
               phase = "end";
               timeElem.textContent = "00:00";

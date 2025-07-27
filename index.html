@@ -147,9 +147,6 @@
             const newHalftime = parseTimeToSeconds(rows[1][0]);
             const statusValue = rows[8][0]?.toLowerCase();
 
-            if (statusValue === "play" && paused) paused = false;
-            if (statusValue === "pause" && !paused) paused = true;
-
             if (firstLoad) {
               matchLength = newMatch;
               halftimeLength = newHalftime;
@@ -161,6 +158,12 @@
               paused = true;
               await updateStatus("Pause");
             }
+
+            if (statusValue === "play" && paused) {
+              paused = false;
+              if (phase === "halftime-pause") phase = "halftime";
+            }
+            if (statusValue === "pause" && !paused) paused = true;
 
             document.getElementById("team1").textContent = rows[3][0] || 'Team A';
             document.getElementById("score1").textContent = rows[4][0] || '0';
@@ -190,7 +193,7 @@
             }
           } else if (phase === "halftime") {
             halftimeTimer++;
-            timeElem.textContent = formatTime(halftimeTimer);
+            timeElem.textContent = formatTime(halftimeLength - halftimeTimer);
             if (halftimeTimer >= halftimeLength) {
               buzzer.play();
               phase = "second";

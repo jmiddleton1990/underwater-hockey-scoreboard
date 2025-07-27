@@ -19,15 +19,33 @@
       transition: background-color 0.5s;
     }
 
-    #blackout {
+    #overlay {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background-color: black;
+      background-color: #41b1eb;
       z-index: 9999;
       display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #overlay-logo {
+      width: 300px;
+      margin-bottom: 20px;
+    }
+
+    #overlay-text {
+      font-size: 8vw;
+      color: #fff;
+    }
+
+    #overlay-timer {
+      font-size: 15vw;
+      color: red;
     }
 
     #logo {
@@ -80,10 +98,13 @@
   </style>
 </head>
 <body>
-  <div id="blackout"></div>
+  <div id="overlay">
+    <img id="overlay-logo" src="https://docs.google.com/drawings/d/e/2PACX-1vQthbu25WufVsdyuxQOvj6Q3ColCj6gv5NB_nQsXCWAuGGNj3N9bBoTWPvfkJSrsEfX8IUFZKEDJK8c/pub?w=1440&h=1080" alt="Logo">
+    <div id="overlay-text"></div>
+    <div id="overlay-timer"></div>
+  </div>
   <img id="logo" src="https://docs.google.com/drawings/d/e/2PACX-1vQthbu25WufVsdyuxQOvj6Q3ColCj6gv5NB_nQsXCWAuGGNj3N9bBoTWPvfkJSrsEfX8IUFZKEDJK8c/pub?w=1440&h=1080" alt="Logo" />
   <div id="time">Loading...</div>
-
   <div class="team-blocks">
     <div class="team">
       <div id="team1" class="team-name">Team A</div>
@@ -97,29 +118,15 @@
   </div>
 
   <audio id="buzzer" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" preload="auto"></audio>
+  <audio id="alarm" src="https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg" preload="auto"></audio>
 
   <script>
     document.addEventListener("DOMContentLoaded", function () {
-      const SHEET_ID = "1b6gofMejj1tXHA1o-yFvCBuV6RhMRiPbTl8iJQY8SzY";
-      const API_KEY = "AIzaSyCaxh4c4PwWwCM3zVm35FoNlaY5NbXWH7c";
-      const column = new URLSearchParams(window.location.search).get("column") || "B";
-      const RANGE = `Settings!${column}2:${column}10`;
-      const API_URL = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`;
-
-      const timeElem = document.getElementById("time");
+      const overlay = document.getElementById("overlay");
+      const overlayText = document.getElementById("overlay-text");
+      const overlayTimer = document.getElementById("overlay-timer");
       const buzzer = document.getElementById("buzzer");
-      const blackout = document.getElementById("blackout");
-
-      let matchLength = 0;
-      let halftimeLength = 0;
-      let halftimeStart = 0;
-      let halftimeTimer = 0;
-      let timeRemaining = 0;
-      let countdownInterval = null;
-      let firstLoad = true;
-      let phase = "first";
-      let paused = true;
-      let useHalftime = true;
+      const alarm = document.getElementById("alarm");
 
       let buzzerPrimed = false;
       document.body.addEventListener('click', () => {
@@ -130,103 +137,39 @@
         }).catch(() => {});
       }, { once: true });
 
-      function parseTimeToSeconds(timeStr) {
-        if (!timeStr || timeStr.trim() === "") return 0;
-        const parts = timeStr.split(":");
-        return parseInt(parts[0]) * 60 + parseInt(parts[1]);
-      }
-
-      function formatTime(seconds) {
-        const mins = String(Math.floor(seconds / 60)).padStart(2, '0');
-        const secs = String(seconds % 60).padStart(2, '0');
-        return `${mins}:${secs}`;
-      }
-
-      async function fetchData() {
-        try {
-          const res = await fetch(API_URL);
-          const data = await res.json();
-          const rows = data.values;
-
-          if (rows && rows.length >= 9) {
-            const newMatch = parseTimeToSeconds(rows[0][0]);
-            const newHalftime = parseTimeToSeconds(rows[1][0]);
-            const statusValue = rows[8][0]?.toLowerCase();
-
-            if (firstLoad) {
-              matchLength = newMatch;
-              halftimeLength = newHalftime;
-              useHalftime = halftimeLength > 0;
-              halftimeStart = useHalftime ? Math.floor(matchLength / 2) : 0;
-              timeRemaining = matchLength;
-              timeElem.textContent = formatTime(timeRemaining);
-              firstLoad = false;
-            }
-
-            if (statusValue === "play" && paused) {
-              paused = false;
-              if (phase === "halftime-pause") {
-                blackout.style.display = "block";
-                setTimeout(() => {
-                  blackout.style.display = "none";
-                  halftimeTimer = 0;
-                  phase = "halftime";
-                }, 1000);
-              }
-            } else if (statusValue === "pause" && !paused) {
-              paused = true;
-            }
-
-            document.getElementById("team1").textContent = rows[3][0] || 'Team A';
-            document.getElementById("score1").textContent = rows[4][0] || '0';
-            document.getElementById("team2").textContent = rows[5][0] || 'Team B';
-            document.getElementById("score2").textContent = rows[6][0] || '0';
-          }
-        } catch (err) {
-          console.error("Error fetching sheet data:", err);
+      function showOverlay(type, team1, team2, score1, score2, countdownSeconds) {
+        overlay.style.display = "flex";
+        if (type === "final") {
+          overlayText.textContent = "Final Score";
+          overlayTimer.textContent = `${score1} - ${score2}`;
+          setTimeout(() => showOverlay("next", team1, team2, null, null, countdownSeconds), 10000);
+        } else if (type === "next") {
+          overlayText.textContent = "Next Game";
+          overlayTimer.textContent = `${team1} vs ${team2}`;
+          setTimeout(() => showCountdown(countdownSeconds), 5000);
         }
       }
 
-      function startClock() {
-        if (countdownInterval) return;
-        countdownInterval = setInterval(() => {
-          if (paused || phase === "end") return;
-
-          if (phase === "first") {
-            timeRemaining--;
-            timeElem.textContent = formatTime(timeRemaining);
-            if (useHalftime && timeRemaining === halftimeStart) {
-              if (buzzerPrimed) buzzer.play();
-              phase = "halftime-pause";
-              paused = true;
-              document.body.classList.add("halftime");
-              timeElem.textContent = formatTime(halftimeLength);
-            }
-          } else if (phase === "halftime") {
-            halftimeTimer++;
-            const timeLeft = halftimeLength - halftimeTimer;
-            timeElem.textContent = formatTime(timeLeft);
-            if (timeLeft <= 0) {
-              if (buzzerPrimed) buzzer.play();
-              phase = "second";
-              timeRemaining = halftimeStart;
-              document.body.classList.remove("halftime");
-            }
-          } else if (phase === "second") {
-            timeRemaining--;
-            timeElem.textContent = formatTime(timeRemaining);
-            if (timeRemaining <= 0) {
-              timeElem.textContent = "00:00";
-              phase = "end";
-              if (buzzerPrimed) buzzer.play();
-            }
+      function showCountdown(seconds) {
+        let count = seconds;
+        overlayText.textContent = "Starting in";
+        overlayTimer.textContent = count;
+        overlayTimer.style.color = "red";
+        alarm.play();
+        const interval = setInterval(() => {
+          count--;
+          overlayTimer.textContent = count;
+          if (count === 0) {
+            clearInterval(interval);
+            overlay.style.display = "none";
+            alarm.pause();
+            alarm.currentTime = 0;
           }
         }, 1000);
       }
 
-      fetchData();
-      setInterval(fetchData, 1000);
-      startClock();
+      // Example trigger with restart timer from spreadsheet:
+      // showOverlay("final", "Team A", "Team B", 3, 2, 5);
     });
   </script>
 </body>

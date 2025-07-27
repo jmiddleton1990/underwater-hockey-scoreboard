@@ -39,12 +39,13 @@
     }
 
     #overlay-text {
-      font-size: 8vw;
+      font-size: 4vw;
       color: #fff;
+      margin-bottom: 2vh;
     }
 
     #overlay-timer {
-      font-size: 15vw;
+      font-size: 10vw;
       color: red;
     }
 
@@ -145,7 +146,7 @@
       }, { once: true });
 
       let matchLength = 0, halftimeLength = 0, halftimeStart = 0;
-      let timeRemaining = 0, halftimeTimer = 0, restartCountdown = 0;
+      let timeRemaining = 0, halftimeTimer = 0, pregameCountdown = 0;
       let countdownInterval = null;
       let phase = "pregame";
       let paused = true;
@@ -169,7 +170,7 @@
           const rows = data.values;
 
           if (rows.length >= 14) {
-            restartCountdown = parseTimeToSeconds(rows[0]?.[0] || "00:05");
+            pregameCountdown = parseTimeToSeconds(rows[0]?.[0] || "00:05");
             matchLength = parseTimeToSeconds(rows[1]?.[0] || "00:10");
             halftimeLength = parseTimeToSeconds(rows[2]?.[0] || "00:05");
             halftimeStart = Math.floor(matchLength / 2);
@@ -185,19 +186,21 @@
             document.getElementById("score1").textContent = score1;
             document.getElementById("score2").textContent = score2;
 
-            if (status === "play" && paused) {
-              if (!countdownInterval) {
-                timeRemaining = matchLength;
-                startClock();
-              }
-              paused = false;
-            } else if (status === "pause") {
-              paused = true;
-            }
-
             if (phase === "pregame") {
-              startPregameCountdown(restartCountdown);
-              phase = "first";
+              startPregameCountdown(pregameCountdown, () => {
+                phase = "first";
+                timeRemaining = matchLength;
+                timeElem.textContent = formatTime(timeRemaining);
+                if (status === "play") {
+                  paused = false;
+                  startClock();
+                }
+              });
+              phase = "waiting";
+            } else if (status === "play") {
+              paused = false;
+            } else {
+              paused = true;
             }
           }
         } catch (err) {
@@ -205,7 +208,7 @@
         }
       }
 
-      function startPregameCountdown(seconds) {
+      function startPregameCountdown(seconds, callback) {
         overlay.style.display = "flex";
         overlayText.textContent = "Starting in";
         overlayTimer.textContent = seconds;
@@ -220,6 +223,7 @@
             overlay.style.display = "none";
             alarm.pause();
             alarm.currentTime = 0;
+            callback();
           }
         }, 1000);
       }

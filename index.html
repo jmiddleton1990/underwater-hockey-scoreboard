@@ -100,7 +100,7 @@
 </head>
 <body>
   <div id="overlay">
-    <img id="overlay-logo" src="https://docs.google.com/drawings/d/e/2PACX-1vQthbu25WufVsdyuxQOvj6Q3ColCj6gv5NB_nQsXCWAuGGNj3N9bBoTWPvfkJSrsEfX8IUFZKEDJK8c/pub?w=1440&h=1080" alt="Logo">
+    <img id="overlay-logo" src="https://docs.google.com/drawings/d/e/2PACX-1vSAQOMrJ8yyW0HKg4EafVhUXREcNNx5R7wbvlI4aPBAq5Sx4teZT0A1YNN6NccS--EwdQHNSQ2RkwPs/pub?w=1256&h=414" alt="Logo">
     <div id="overlay-text"></div>
     <div id="overlay-timer"></div>
   </div>
@@ -211,14 +211,13 @@
       function startPregameCountdown(seconds, callback) {
         overlay.style.display = "flex";
         overlayText.textContent = "Starting in";
-        overlayTimer.textContent = seconds;
         overlayTimer.style.color = "red";
         alarm.play();
         let count = seconds;
         const interval = setInterval(() => {
-          count--;
           overlayTimer.textContent = count;
-          if (count <= 0) {
+          count--;
+          if (count < 0) {
             clearInterval(interval);
             overlay.style.display = "none";
             alarm.pause();
@@ -242,13 +241,13 @@
               setTimeout(() => {
                 phase = "halftime";
                 paused = false;
-                halftimeTimer = 0;
+                halftimeTimer = halftimeLength;
               }, 500);
             }
           } else if (phase === "halftime") {
-            halftimeTimer++;
+            halftimeTimer--;
             timeElem.textContent = formatTime(halftimeTimer);
-            if (halftimeTimer >= halftimeLength) {
+            if (halftimeTimer <= 0) {
               buzzer.play();
               phase = "second";
               timeRemaining = halftimeStart;

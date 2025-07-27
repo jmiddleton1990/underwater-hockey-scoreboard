@@ -131,6 +131,7 @@
       const overlay = document.getElementById("overlay");
       const overlayText = document.getElementById("overlay-text");
       const overlayTimer = document.getElementById("overlay-timer");
+      const timeElem = document.getElementById("time");
       const buzzer = document.getElementById("buzzer");
       const alarm = document.getElementById("alarm");
 
@@ -142,6 +143,97 @@
           buzzerPrimed = true;
         }).catch(() => {});
       }, { once: true });
+
+      let matchLength = 0, halftimeLength = 0, halftimeStart = 0;
+      let timeRemaining = 0, halftimeTimer = 0;
+      let countdownInterval = null;
+      let phase = "first";
+      let paused = true;
+
+      function parseTimeToSeconds(t) {
+        if (!t) return 0;
+        const parts = t.split(":");
+        return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+      }
+
+      function formatTime(seconds) {
+        const mins = String(Math.floor(seconds / 60)).padStart(2, '0');
+        const secs = String(seconds % 60).padStart(2, '0');
+        return `${mins}:${secs}`;
+      }
+
+      async function fetchData() {
+        try {
+          const res = await fetch(API_URL);
+          const data = await res.json();
+          const rows = data.values;
+
+          if (rows.length >= 14) {
+            const restartTime = parseTimeToSeconds(rows[0]?.[0] || "00:05");
+            matchLength = parseTimeToSeconds(rows[1]?.[0] || "00:10");
+            halftimeLength = parseTimeToSeconds(rows[2]?.[0] || "00:05");
+            halftimeStart = Math.floor(matchLength / 2);
+            timeRemaining = matchLength;
+
+            const team1 = rows[5]?.[0] || "Team A";
+            const team2 = rows[7]?.[0] || "Team B";
+            const score1 = rows[6]?.[0] || "0";
+            const score2 = rows[8]?.[0] || "0";
+            const status = (rows[10]?.[0] || "Pause").toLowerCase();
+
+            document.getElementById("team1").textContent = team1;
+            document.getElementById("team2").textContent = team2;
+            document.getElementById("score1").textContent = score1;
+            document.getElementById("score2").textContent = score2;
+
+            if (status === "play") paused = false;
+            else paused = true;
+
+            if (!countdownInterval) startClock();
+          }
+        } catch (err) {
+          console.error("Fetch error:", err);
+        }
+      }
+
+      function startClock() {
+        countdownInterval = setInterval(() => {
+          if (paused) return;
+          if (phase === "first") {
+            timeRemaining--;
+            timeElem.textContent = formatTime(timeRemaining);
+            if (timeRemaining === halftimeStart && halftimeLength > 0) {
+              buzzer.play();
+              paused = true;
+              phase = "halftime-pause";
+              document.body.classList.add("halftime");
+              setTimeout(() => {
+                phase = "halftime";
+                paused = false;
+                halftimeTimer = 0;
+              }, 500);
+            }
+          } else if (phase === "halftime") {
+            halftimeTimer++;
+            timeElem.textContent = formatTime(halftimeTimer);
+            if (halftimeTimer >= halftimeLength) {
+              buzzer.play();
+              phase = "second";
+              timeRemaining = halftimeStart;
+              document.body.classList.remove("halftime");
+            }
+          } else if (phase === "second") {
+            timeRemaining--;
+            timeElem.textContent = formatTime(timeRemaining);
+            if (timeRemaining === 0) {
+              buzzer.play();
+              phase = "end";
+              timeElem.textContent = "00:00";
+              loadAndTriggerOverlay();
+            }
+          }
+        }, 1000);
+      }
 
       function showOverlay(type, team1, team2, score1, score2, countdownSeconds) {
         overlay.style.display = "flex";
@@ -192,8 +284,8 @@
         }
       }
 
-      // Trigger overlay for testing:
-      // loadAndTriggerOverlay();
+      fetchData();
+      setInterval(fetchData, 1000);
     });
   </script>
 </body>

@@ -46,7 +46,15 @@
 
     #overlay-timer {
       font-size: 10vw;
-      color: red;
+      color: white;
+    }
+
+    .flash {
+      animation: flash 1s steps(1) infinite;
+    }
+
+    @keyframes flash {
+      50% { opacity: 0; }
     }
 
     #logo {
@@ -225,11 +233,18 @@
 
       function startPregameCountdown(seconds, callback) {
         overlay.style.display = "flex";
-        overlayTimer.style.color = "red";
+        overlayTimer.style.color = "white";
         alarm.play();
         let count = seconds;
         const interval = setInterval(() => {
           overlayTimer.textContent = formatTime(count);
+          if (count <= 3) {
+            overlayTimer.classList.add("flash");
+            overlayTimer.style.color = "red";
+          } else {
+            overlayTimer.classList.remove("flash");
+            overlayTimer.style.color = "white";
+          }
           count--;
           if (count < 0) {
             clearInterval(interval);

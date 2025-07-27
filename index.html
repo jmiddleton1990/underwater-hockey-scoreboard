@@ -41,12 +41,13 @@
     #overlay-text {
       font-size: 2vw;
       color: #fff;
-      margin-bottom: -1vh;
+      margin-bottom: 0;
     }
 
     #overlay-timer {
       font-size: 10vw;
       color: white;
+      line-height: 1;
     }
 
     .flash {
@@ -162,7 +163,7 @@
       let countdownInterval = null;
       let phase = "pregame";
       let paused = true;
-      let overlayCountdown = 0;
+      let overlayActive = false;
 
       function parseTimeToSeconds(t) {
         if (!t) return 0;
@@ -193,19 +194,20 @@
             document.getElementById("score1").textContent = rows[6]?.[0] || "0";
             document.getElementById("score2").textContent = rows[8]?.[0] || "0";
 
-            if (phase === "pregame" && overlayCountdown === 0) {
+            paused = (status !== "play");
+
+            if (phase === "pregame" && !overlayActive) {
               pregameCountdown = newPregame;
-              overlayCountdown = pregameCountdown;
               overlay.style.display = "flex";
               alarm.play();
               overlayTimer.style.color = "white";
               overlayTimer.classList.remove("flash");
+              overlayActive = true;
             }
 
             matchLength = newMatch;
             halftimeLength = newHalftime;
             halftimeStart = Math.floor(matchLength / 2);
-            paused = (status !== "play");
           }
         } catch (err) {
           console.error("Fetch error:", err);
@@ -214,27 +216,25 @@
 
       function startClock() {
         countdownInterval = setInterval(() => {
+          if (paused) return;
+
           if (phase === "pregame") {
-            if (!paused) {
-              overlayTimer.textContent = formatTime(overlayCountdown);
-              if (overlayCountdown <= 3) {
-                overlayTimer.classList.add("flash");
-                overlayTimer.style.color = "red";
-              }
-              overlayCountdown--;
-              if (overlayCountdown < 0) {
-                alarm.pause();
-                alarm.currentTime = 0;
-                overlay.style.display = "none";
-                phase = "first";
-                timeRemaining = matchLength;
-                timeElem.textContent = formatTime(timeRemaining);
-              }
+            overlayTimer.textContent = formatTime(pregameCountdown);
+            if (pregameCountdown <= 3) {
+              overlayTimer.classList.add("flash");
+              overlayTimer.style.color = "red";
+            }
+            pregameCountdown--;
+            if (pregameCountdown < 0) {
+              alarm.pause();
+              alarm.currentTime = 0;
+              overlay.style.display = "none";
+              phase = "first";
+              timeRemaining = matchLength;
+              timeElem.textContent = formatTime(timeRemaining);
             }
             return;
           }
-
-          if (paused || phase === "end") return;
 
           if (phase === "first") {
             timeRemaining--;
@@ -247,6 +247,7 @@
               setTimeout(() => {
                 phase = "halftime";
                 halftimeTimer = halftimeLength;
+                paused = false;
               }, 500);
             }
           } else if (phase === "halftime") {

@@ -149,9 +149,7 @@
                 timeElem.textContent = formatTime(halftimeLength);
               }
             }
-            if (statusValue === "pause" && !paused) {
-              paused = true;
-            }
+            if (statusValue === "pause" && !paused) paused = true;
 
             document.getElementById("team1").textContent = rows[3][0] || 'Team A';
             document.getElementById("score1").textContent = rows[4][0] || '0';
@@ -179,8 +177,9 @@
             }
           } else if (phase === "halftime") {
             halftimeTimer++;
-            timeElem.textContent = formatTime(halftimeLength - halftimeTimer);
-            if (halftimeTimer >= halftimeLength) {
+            const timeLeft = halftimeLength - halftimeTimer;
+            timeElem.textContent = formatTime(timeLeft);
+            if (timeLeft <= 0) {
               buzzer.play();
               phase = "second";
               timeRemaining = halftimeStart;
@@ -189,10 +188,10 @@
           } else if (phase === "second") {
             timeRemaining--;
             timeElem.textContent = formatTime(timeRemaining);
-            if (timeRemaining === 0) {
-              buzzer.play();
-              phase = "end";
+            if (timeRemaining <= 0) {
               timeElem.textContent = "00:00";
+              phase = "end";
+              buzzer.play();
             }
           }
         }, 1000);
